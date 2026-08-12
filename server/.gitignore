@@ -5,3 +5,8 @@ dist/
 .DS_Store
 prisma/migrations/
 coverage/
+temp_pg/
+temp_output.txt
+temp_output - Copy.txt
+temp_set_game_settings.js
+temp_set_game_settings - Copy.js
