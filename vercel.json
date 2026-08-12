@@ -2,19 +2,5 @@
   "version": 2,
   "buildCommand": "cd admin-page && npm run build",
   "installCommand": "npm install",
-  "outputDirectory": "admin-page/.next",
-  "env": {
-    "NEXT_PUBLIC_API_URL": "@next_public_api_url"
-  },
-  "functions": {
-    "admin-page/pages/api/**": {
-      "runtime": "nodejs20.x"
-    }
-  },
-  "rewrites": [
-    {
-      "source": "/(.*)",
-      "destination": "/index.html"
-    }
-  ]
+  "outputDirectory": "admin-page/.next"
 }
