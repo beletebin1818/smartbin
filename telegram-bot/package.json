@@ -1,0 +1,16 @@
+{
+  "name": "red-bingo-telegram-bot",
+  "version": "1.0.0",
+  "description": "Telegram Bot for Red Bingos player registration and commands",
+  "main": "src/bot.js",
+  "scripts": {
+    "start": "node src/bot.js",
+    "dev": "node src/bot.js",
+    "build": "echo \"No build step required for Telegram Bot\""
+  },
+  "dependencies": {
+    "axios": "^1.6.8",
+    "dotenv": "^16.4.5",
+    "telegraf": "^4.16.3"
+  }
+}

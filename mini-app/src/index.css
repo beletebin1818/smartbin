@@ -1,0 +1,22 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  html, body, #root {
+    @apply h-full w-full;
+    background-color: #F8F9FA;
+    color: #1E293B;
+    font-family: 'Inter', 'Noto Sans Ethiopic', system-ui, -apple-system, sans-serif;
+  }
+}
+
+@keyframes twinkle {
+  0% { transform: scale(1); filter: brightness(1); }
+  50% { transform: scale(1.2); filter: brightness(1.8); box-shadow: 0 0 20px #f59e0b; }
+  100% { transform: scale(1); filter: brightness(1); }
+}
+
+.animate-twinkle {
+  animation: twinkle 0.6s ease-in-out;
+}

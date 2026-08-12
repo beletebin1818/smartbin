@@ -1,0 +1,19 @@
+# Build output
+.next
+
+# Local clean state
+.nx
+
+# Node modules
+node_modules
+
+# Local env files
+.env.local
+.env
+
+# TypeScript build info
+*.tsbuildinfo
+
+# OS files
+.DS_Store
+Thumbs.db

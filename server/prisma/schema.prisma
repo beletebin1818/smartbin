@@ -1,0 +1,600 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ─────────────────────────────────────────────
+//  ADMIN USERS  (super_admin, admin, agent)
+// ─────────────────────────────────────────────
+model AdminUser {
+  id           Int       @id @default(autoincrement())
+  username     String    @unique
+  password     String    // bcrypt hash
+  firstName    String
+  lastName     String
+  email        String?   @unique
+  role         AdminRole @default(admin)
+  jobTitle     String?
+  status       Boolean   @default(true)
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  // Relations
+  agents       Agent[]   @relation("AdminAgents")
+  createdGames Game[]    @relation("AdminGames")
+  // Requests processed by this admin (approved/rejected)
+  processedRequests PendingRequest[]
+}
+
+enum AdminRole {
+  super_admin
+  admin
+  moderator
+  support
+  agent
+}
+
+// ─────────────────────────────────────────────
+//  AGENTS  (field agents who collect cash)
+// ─────────────────────────────────────────────
+model Agent {
+  id              Int       @id @default(autoincrement())
+  username        String    @unique
+  password        String    // bcrypt hash
+  firstName       String
+  lastName        String
+  phoneNumber     String    @unique
+  balance         Float     @default(0)
+  totalDeposited  Float     @default(0)
+  totalWithdrawn  Float     @default(0)
+  commissionRate  Float     @default(0)
+  status          Boolean   @default(true)
+  registeredBy    Int?
+  admin           AdminUser? @relation("AdminAgents", fields: [registeredBy], references: [id])
+  lastLoginAt     DateTime?
+  cbeAccount      String?
+  cbeHolder       String?
+  telebirrPhone   String?
+  telebirrHolder  String?
+  role            String    @default("agent")
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  // Relations
+  players         Player[]
+  transactions    Transaction[]
+  pendingRequests PendingRequest[]
+  processedRequests PendingRequest[] @relation("ProcessedByAgent")
+  bankAccounts    AgentBankAccount[]
+}
+
+// ─────────────────────────────────────────────
+//  AGENT BANK ACCOUNTS  (multiple accounts per agent per provider)
+// ─────────────────────────────────────────────
+model AgentBankAccount {
+  id           Int       @id @default(autoincrement())
+  agentId      Int
+  agent        Agent     @relation(fields: [agentId], references: [id], onDelete: Cascade)
+  method       String    // e.g. "CBE", "TeleBirr"
+  accountName  String
+  accountNumber String
+  isActive     Boolean   @default(true)
+  displayOrder Int       @default(0)
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  @@unique([agentId, method, accountNumber])
+  @@index([agentId, method, isActive])
+}
+
+// ─────────────────────────────────────────────
+//  PLAYERS  (Telegram users)
+// ─────────────────────────────────────────────
+model Player {
+  id              Int       @id @default(autoincrement())
+  telegramId      String    @unique
+  username        String?
+  firstName       String
+  lastName        String?
+  phoneNumber     String?   @unique
+  balance         Float     @default(0)
+  totalDeposited  Float     @default(0)
+  totalWithdrawn  Float     @default(0)
+  gamesPlayed     Int       @default(0)
+  gamesWon        Int       @default(0)
+  language        String    @default("am")  // "am" | "en"
+  status          Boolean   @default(true)
+  registeredAt    DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  // ── Bot identity fields ──────────────────────────────────────────────────
+  isBot           Boolean   @default(false)  // true if this is a bot player
+  botAvatar       String?                    // avatar identifier from botAvatars
+
+  // Relations — registered through an agent
+  agentId         Int?
+  agent           Agent?    @relation(fields: [agentId], references: [id])
+
+  // Game relations
+  gameSessions    GameSession[]
+  transactions    Transaction[]
+  pendingRequests PendingRequest[]
+  cards           BingoCard[]
+  gameWins        GameWinner[]
+}
+
+// ─────────────────────────────────────────────
+//  GAME SETTINGS  (admin configurable)
+// ─────────────────────────────────────────────
+model GameSettings {
+  id               Int      @id @default(1)  // singleton row
+  minBet           Float    @default(10)
+  maxBet           Float    @default(500)
+  maxPlayers       Int      @default(100)
+  maxCardsPerPlayer Int     @default(5)
+  totalCards       Int      @default(400)
+  initialJoinBonus Float    @default(10)
+  winningLineCount Int      @default(1)       // lines needed to win
+  allowJoinCancel  Boolean  @default(true)
+  allowAutoBets    Boolean  @default(true)
+  allowManualBets  Boolean  @default(true)
+  gameStatus       GameStatus @default(open)
+  lobbySeconds      Int       @default(15)
+  drawInterval      Int       @default(4)
+  joinWindowDuration Int      @default(120)
+  idleTimeoutMinutes Int      @default(10)
+  autoRestartNextGame Boolean @default(true)
+  announceBetweenGames Boolean @default(true)
+  defaultCommissionRate Float @default(0)
+  minimumAgentPayout Float @default(0)
+  maximumAgentPayout Float @default(0)
+  agentWithdrawalCooldown Int @default(24)
+  allowAgentRegistration Boolean @default(true)
+  requireAgentApproval Boolean @default(true)
+  botDifficulty    String   @default("Medium")
+  numberOfBots     Int      @default(0)
+  platformName     String   @default("Red Bingo")
+  maxConcurrentGames Int    @default(1)
+  sessionTimeoutMins Int    @default(60)
+  maintenanceMode   Boolean @default(false)
+  debugLogging      Boolean @default(false)
+  houseEdge         Float     @default(10.0)
+  activePatterns    String     @default("row,column,diagonal,blackout")
+  updatedAt        DateTime @updatedAt
+
+  // ── Bot system settings ──────────────────────────────────────────────────
+  botsEnabled      Boolean  @default(false)   // master switch for bot players
+  minBotPlayers    Int      @default(0)       // minimum bots per game
+  maxBotPlayers    Int      @default(0)       // maximum bots per game
+  botMinCards      Int      @default(1)       // min cards a bot buys
+  botMaxCards      Int      @default(3)       // max cards a bot buys
+  showBotLabels    Boolean  @default(true)    // display "Bot" label in lobby
+  botJoinDelayMin  Int      @default(500)     // ms – earliest bot can join
+  botJoinDelayMax  Int      @default(5000)    // ms – latest bot can join
+  supportUsername  String   @default("@REDBINGOSUPPORT")
+}
+
+enum GameStatus {
+  open
+  closed
+  maintenance
+}
+
+// ─────────────────────────────────────────────
+//  GAMES
+// ─────────────────────────────────────────────
+model Game {
+  id              Int        @id @default(autoincrement())
+  status          RoundStatus @default(waiting)
+  prize           Float      @default(0)
+  cardPrice       Float      @default(50)
+  totalCards      Int        @default(0)
+  drawnNumbers    Int[]      @default([])
+  currentNumber   Int?
+  drawIndex       Int        @default(0)
+  winnerCount     Int        @default(0)
+  mode            GameMode   @default(automatic)
+  startedAt       DateTime?
+  endedAt         DateTime?
+  createdAt       DateTime   @default(now())
+  updatedAt       DateTime   @updatedAt
+
+  // ── Per-game bot overrides (null = inherit from GameSettings) ────────────
+  botsEnabled     Boolean?   // override GameSettings.botsEnabled
+  minBotPlayers   Int?       // override GameSettings.minBotPlayers
+  maxBotPlayers   Int?       // override GameSettings.maxBotPlayers
+  botMinCards     Int?       // override GameSettings.botMinCards
+  botMaxCards     Int?       // override GameSettings.botMaxCards
+
+  // Relations
+  createdById     Int?
+  createdBy       AdminUser? @relation("AdminGames", fields: [createdById], references: [id])
+  sessions        GameSession[]
+  winners         GameWinner[]
+  cards           BingoCard[]
+}
+
+enum RoundStatus {
+  waiting
+  in_progress
+  completed
+  cancelled
+}
+
+enum GameMode {
+  automatic
+  manual
+}
+
+// ─────────────────────────────────────────────
+//  BINGO CARDS  (5x5 grid per player per game)
+// ─────────────────────────────────────────────
+model BingoCard {
+  id          Int       @id @default(autoincrement())
+  cardNumber  Int
+  numbers     Int[]     // 25 numbers in B-I-N-G-O column order
+  markedCells Boolean[] @default([]) // which cells are marked
+  isWinner    Boolean   @default(false)
+  createdAt   DateTime  @default(now())
+
+   // Relations
+   playerId    Int?
+   player      Player?    @relation(fields: [playerId], references: [id])
+   sessionId   Int?
+   session     GameSession? @relation(fields: [sessionId], references: [id])
+   gameId      Int
+   game        Game       @relation(fields: [gameId], references: [id])
+   gameWinners GameWinner[]
+
+   @@unique([gameId, cardNumber])
+}
+
+// ─────────────────────────────────────────────
+//  GAME SESSIONS  (player joining a game)
+// ─────────────────────────────────────────────
+model GameSession {
+  id          Int       @id @default(autoincrement())
+  bet         Float
+  cardCount   Int       @default(1)
+  totalBet    Float
+  status      SessionStatus @default(active)
+  joinedAt    DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  // Relations
+  gameId      Int
+  game        Game      @relation(fields: [gameId], references: [id])
+  playerId    Int
+  player      Player    @relation(fields: [playerId], references: [id])
+  cards       BingoCard[]
+}
+
+enum SessionStatus {
+  active
+  won
+  lost
+  cancelled
+}
+
+// ─────────────────────────────────────────────
+//  GAME WINNERS
+// ─────────────────────────────────────────────
+model GameWinner {
+  id              Int       @id @default(autoincrement())
+  prize           Float
+  cardNumbers     Int[]
+  winPattern      String    // e.g. "row,column", "diagonal,fourCorners", etc.
+  winningPatterns String[]  // array of winning pattern names, e.g. ["row", "column"]
+  drawNumber      Int?      // last number drawn that triggered the win
+  drawIndex       Int?      // draw index at which win was detected
+  gameDuration    Int?      // total seconds the game lasted before win
+  createdAt       DateTime  @default(now())
+
+  // Relations
+  gameId          Int
+  game            Game      @relation(fields: [gameId], references: [id])
+  playerId        Int
+  player          Player    @relation(fields: [playerId], references: [id])
+  bingoCardId     Int?
+  bingoCard       BingoCard? @relation(fields: [bingoCardId], references: [id])
+
+  @@unique([gameId, playerId])
+}
+
+// ─────────────────────────────────────────────
+//  TRANSACTIONS  (credit / debit ledger)
+// ─────────────────────────────────────────────
+model Transaction {
+  id          Int             @id @default(autoincrement())
+  type        TransactionType
+  amount      Float
+  balanceBefore Float
+  balanceAfter  Float
+  note        String?
+  status      TxStatus        @default(completed)
+  createdAt   DateTime        @default(now())
+  method      String?
+  smsProof    String?
+  pendingRequestId Int?
+
+  // Relations
+  playerId    Int?
+  player      Player?   @relation(fields: [playerId], references: [id])
+  agentId     Int?
+  agent       Agent?    @relation(fields: [agentId], references: [id])
+}
+
+enum TransactionType {
+  deposit
+  withdrawal
+  win
+  bet
+  bonus
+  refund
+  agent_credit
+  agent_debit
+}
+
+enum TxStatus {
+  pending
+  completed
+  failed
+  cancelled
+}
+
+// ─────────────────────────────────────────────
+//  PENDING REQUESTS  (deposit / withdrawal requests)
+// ─────────────────────────────────────────────
+model PendingRequest {
+  id          Int           @id @default(autoincrement())
+  type        RequestType
+  amount      Float
+  status      RequestStatus @default(pending)
+  note        String?
+  processedAt DateTime?
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+  method      String?
+  smsProof    String?
+  accountNumber String?
+  accountHolder String?
+  transactionId String?
+  // Relations
+  playerId    Int?
+  player      Player?  @relation(fields: [playerId], references: [id])
+  agentId     Int?
+  agent       Agent?   @relation(fields: [agentId], references: [id])
+  // The admin user who processed (approved/rejected) this request
+  processedById Int?
+  processedBy   AdminUser? @relation(fields: [processedById], references: [id])
+  // The agent who processed (approved/rejected) this request (if done by an agent)
+  processedByAgentId Int?
+  processedByAgent   Agent? @relation("ProcessedByAgent", fields: [processedByAgentId], references: [id])
+  depositVerification DepositVerification?
+}
+
+enum RequestType {
+  deposit
+  withdrawal
+}
+
+enum RequestStatus {
+  pending
+  approved
+  rejected
+}
+
+// ─────────────────────────────────────────────
+//  BROADCAST MESSAGES  (admin → all players via bot)
+// ─────────────────────────────────────────────
+model Broadcast {
+  id          Int       @id @default(autoincrement())
+  title       String
+  body        String
+  imageUrl    String?
+  mode        String    @default("global")
+  targetCount Int       @default(0)
+  sentCount   Int       @default(0)
+  failedCount Int       @default(0)
+  sentBy      String?
+  status      BroadcastStatus @default(draft)
+  scheduledAt DateTime?
+  sentAt      DateTime?
+  createdAt   DateTime  @default(now())
+}
+
+enum BroadcastStatus {
+  draft
+  sending
+  sent
+  failed
+}
+
+// ─────────────────────────────────────────────
+//  PAYMENT ACCOUNTS  (deposit/withdrawal options)
+// ─────────────────────────────────────────────
+model PaymentAccount {
+  id            Int     @id @default(autoincrement())
+  method        String
+  accountName   String
+  accountNumber String
+  isActive      Boolean @default(true)
+  displayOrder  Int     @default(0)
+
+  @@unique([method])
+}
+
+// ─────────────────────────────────────────────
+//  DEPOSIT VERIFICATION  (Automatic SMS vs Receipt)
+// ─────────────────────────────────────────────
+model DepositVerification {
+  id                 Int      @id @default(autoincrement())
+  playerId           Int
+  agentId            Int?
+  smsText            String
+  receiptUrl         String?
+  smsData            Json     // Parsed from SMS (amount, sender, receiver, etc.)
+  receiptData        Json?    // Scraped from Receipt (amount, sender, receiver, etc.)
+  verificationStatus String   // "VERIFIED", "MISMATCH", "FAILED", "DUPLICATE"
+  mismatchFields     Json?    // List of fields that didn't match
+  transactionId      String?  @unique // Global unique transaction ID to prevent duplicates
+  amount             Float
+  createdAt          DateTime @default(now())
+  status             String   @default("pending") // "pending", "approved", "rejected"
+
+  // Link to PendingRequest
+  pendingRequestId   Int?     @unique
+  pendingRequest     PendingRequest? @relation(fields: [pendingRequestId], references: [id], onDelete: SetNull)
+}
+
+// ─────────────────────────────────────────────
+//  REFRESH TOKENS  (for token rotation)
+// ─────────────────────────────────────────────
+model RefreshToken {
+  id           Int      @id @default(autoincrement())
+  token        String   @unique
+  userId       Int
+  userType     String   // "admin" or "agent"
+  expiresAt    DateTime
+  createdAt    DateTime @default(now())
+  revokedAt    DateTime?
+  replacedByToken String?
+  
+  @@index([userId, userType])
+  @@index([token])
+}
+
+// ─────────────────────────────────────────────
+//  DEVICE MANAGEMENT  (device fingerprinting)
+// ─────────────────────────────────────────────
+model Device {
+  id           Int      @id @default(autoincrement())
+  userId       Int
+  userType     String   // "admin" or "agent"
+  
+  // Device fingerprinting data
+  deviceFingerprint String @unique // Unique device identifier
+  deviceName   String?  // User-friendly name (e.g., "John's HP Laptop")
+  deviceType   String?  // "desktop", "mobile", "tablet"
+  platform     String?  // "Windows", "Mac", "Linux", "iOS", "Android"
+  browser      String?  // "Chrome", "Firefox", "Safari", "Edge"
+  userAgent    String?  // Full user agent string
+  
+  // Location data
+  ipAddress    String?
+  country      String?
+  city         String?
+  region       String?
+  latitude     Float?
+  longitude    Float?
+  
+  // Security status
+  isTrusted    Boolean  @default(false)
+  isBlocked    Boolean  @default(false)
+  lastSeenAt   DateTime @default(now())
+  createdAt    DateTime @default(now())
+  
+  // Approval workflow
+  isPendingApproval Boolean @default(false)
+  approvedAt   DateTime?
+  approvedBy   Int?     // Admin user ID who approved
+  
+  // OTP attempt tracking
+  failedOtpAttempts Int @default(0)
+  lastOtpAttemptAt  DateTime?
+  blockedAt         DateTime?
+  
+  @@index([userId, userType])
+  @@index([deviceFingerprint])
+  @@index([ipAddress])
+  @@index([isPendingApproval])
+}
+
+// ─────────────────────────────────────────────
+//  LOGIN ATTEMPTS  (security audit log)
+// ─────────────────────────────────────────────
+model LoginAttempt {
+  id           Int      @id @default(autoincrement())
+  userId       Int?
+  userType     String?
+  username     String?
+  
+  // Attempt details
+  ipAddress    String?
+  deviceFingerprint String?
+  userAgent    String?
+  
+  // Location data
+  country      String?
+  city         String?
+  
+  // Attempt status
+  success      Boolean
+  failureReason String? // "invalid_credentials", "device_blocked", "pending_approval", etc.
+  
+  // Timestamp
+  createdAt    DateTime @default(now())
+  
+  @@index([userId])
+  @@index([ipAddress])
+  @@index([createdAt])
+  @@index([success])
+}
+
+// ─────────────────────────────────────────────
+//  SECURITY ALERTS  (notification system)
+// ─────────────────────────────────────────────
+model SecurityAlert {
+  id           Int      @id @default(autoincrement())
+  userId       Int
+  userType     String
+  alertType    String   // "new_device", "suspicious_location", "multiple_failed_attempts"
+  severity     String   // "low", "medium", "high", "critical"
+  
+  // Alert details
+  title        String
+  message      String
+  metadata     Json?    // Additional context data
+  
+  // Related entities
+  deviceId     Int?
+  loginAttemptId Int?
+  
+  // Status
+  isRead       Boolean  @default(false)
+  isResolved   Boolean  @default(false)
+  resolvedAt   DateTime?
+  
+  // Timestamps
+  createdAt    DateTime @default(now())
+  
+  @@index([userId, userType])
+  @@index([alertType])
+  @@index([isRead])
+  @@index([createdAt])
+}
+
+// ─────────────────────────────────────────────
+//  DEVICE APPROVAL OTP  (6-digit codes for device approval)
+// ─────────────────────────────────────────────
+model DeviceApprovalOtp {
+  id         Int      @id @default(autoincrement())
+  code       String   // 6-digit code
+  deviceId   Int      // Related device
+  expiresAt  DateTime // OTP expiration (10 minutes)
+  used       Boolean  @default(false) // Whether OTP has been used
+  usedAt     DateTime?
+  createdAt  DateTime @default(now())
+  
+  @@index([deviceId])
+  @@index([code])
+  @@index([expiresAt])
+  @@index([createdAt])
+}
