@@ -1,6 +1,6 @@
 {
   "version": 2,
-  "buildCommand": "cd admin-page && npm run build",
-  "installCommand": "npm install",
-  "outputDirectory": "admin-page/.next"
+  "root": "admin-page",
+  "buildCommand": "npm run build",
+  "outputDirectory": ".next"
 }
