@@ -9,8 +9,8 @@
 const fs = require('fs');
 const path = require('path');
 
-const amPath = path.resolve(__dirname, '../../../src/i18n/am.json');
-const enPath = path.resolve(__dirname, '../../../src/i18n/en.json');
+const amPath = path.resolve(__dirname, '../../server/src/i18n/am.json');
+const enPath = path.resolve(__dirname, '../../server/src/i18n/en.json');
 
 let am = {};
 let en = {};
