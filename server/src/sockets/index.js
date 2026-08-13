@@ -7,12 +7,8 @@
 
 function initSockets(io) {
   io.on('connection', (socket) => {
-    console.log(`🔌 Socket connected   | id: ${socket.id} | ip: ${socket.handshake.address}`);
-
     // Client can identify itself as a player or admin
     socket.on('identify', ({ role, userId }) => {
-      console.log(`👤 Socket identified  | id: ${socket.id} | role: ${role} | userId: ${userId}`);
-
       if (role === 'player') {
         socket.join(`player_${userId}`);
       } else if (role === 'admin') {
@@ -29,14 +25,12 @@ function initSockets(io) {
     // Join game room to receive ticks and draw events
     socket.on('join_game', ({ gameId }) => {
       socket.join(`game_${gameId}`);
-      console.log(`🔌 Socket ${socket.id} joined room: game_${gameId}`);
       socket.emit('joined_room', { success: true, room: `game_${gameId}` });
     });
 
     // Leave game room
     socket.on('leave_game', ({ gameId }) => {
       socket.leave(`game_${gameId}`);
-      console.log(`🔌 Socket ${socket.id} left room: game_${gameId}`);
       socket.emit('left_room', { success: true, room: `game_${gameId}` });
     });
 
@@ -46,7 +40,7 @@ function initSockets(io) {
     });
 
     socket.on('disconnect', (reason) => {
-      console.log(`❌ Socket disconnected | id: ${socket.id} | reason: ${reason}`);
+      // Disconnected cleanly
     });
 
     socket.on('error', (err) => {

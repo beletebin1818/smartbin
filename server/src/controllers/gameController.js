@@ -51,18 +51,6 @@ function calculateStats(game) {
   const fallbackEnrollment = Math.max(0, totalCardsInParens - 15);
   const totalEnrollmentCards = totalClaimedCards > 0 ? claimedEnrollment : fallbackEnrollment;
 
-  console.log('🎯 [calculateStats] Stats calculated:', {
-    realPlayerCards,
-    botCards,
-    totalClaimedCards,
-    totalCardsInParens,
-    totalEnrollmentCards,
-    allPlayerCount,
-    realPlayerCount: uniqueRealPlayerCount,
-    botCount: allPlayerCount - uniqueRealPlayerCount,
-    humanContribution,
-  });
-
   return {
     ...game,
     calculatedStats: {
@@ -106,7 +94,6 @@ async function list(req, res, next) {
 
 async function live(req, res, next) {
   try {
-    console.log('🎯 [gameController.live] Fetching live game...');
     const game = await prisma.game.findFirst({
       where: { status: 'in_progress' },
       orderBy: { createdAt: 'desc' },
@@ -136,7 +123,6 @@ async function live(req, res, next) {
     });
 
     if (!game) {
-      console.log('🎯 [gameController.live] No in_progress game found, falling back to waiting game...');
       const waitingGame = await prisma.game.findFirst({
         where: { status: 'waiting' },
         include: {
@@ -166,20 +152,14 @@ async function live(req, res, next) {
       });
 
       if (waitingGame) {
-        console.log('🎯 [gameController.live] Using waiting game:', { id: waitingGame.id, sessionsCount: waitingGame.sessions?.length });
         const gameWithStats = calculateStats(waitingGame);
         return res.json({ success: true, data: gameWithStats });
       }
 
-      console.log('🎯 [gameController.live] No waiting game found either');
       return res.json({ success: true, data: null });
     }
 
-    console.log('🎯 [gameController.live] Found game:', { id: game.id, sessionsCount: game.sessions?.length });
-
     const gameWithStats = calculateStats(game);
-
-    console.log('🎯 [gameController.live] Returning game with stats');
     return res.json({ success: true, data: gameWithStats });
   } catch (err) {
     console.error('❌ [gameController.live] Error:', err);

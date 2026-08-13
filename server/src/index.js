@@ -119,8 +119,6 @@ app.use(cors({
     const normalizedOrigin = origin.replace(/\/$/, '');
     const normalizedAllowedOrigins = allowedOrigins.map(o => o.replace(/\/$/, ''));
     
-    console.log(`🔍 CORS Check: Origin="${normalizedOrigin}", Allowed=${JSON.stringify(normalizedAllowedOrigins)}`);
-    
     // For development with Cloudflare tunnels, allow all origins
     // In production, you should restrict this to specific origins
     callback(null, true);
