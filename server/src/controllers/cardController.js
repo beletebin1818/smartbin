@@ -177,17 +177,8 @@ async function claimCard(req, res, next) {
         where: { gameId, playerId: player.id, status: 'active' },
       });
 
-      console.log('[CARD CLAIM] Player info:', { 
-        playerId: player.id, 
-        isBot: player.isBot, 
-        status: player.status,
-        firstName: player.firstName,
-        phoneNumber: player.phoneNumber 
-      });
-
       if (session) {
         // Update existing session
-        console.log('[CARD CLAIM] Updating existing session:', session.id);
         session = await tx.gameSession.update({
           where: { id: session.id },
           data: {
@@ -197,7 +188,6 @@ async function claimCard(req, res, next) {
         });
       } else {
         // Create new session
-        console.log('[CARD CLAIM] Creating new session for player:', player.id);
         session = await tx.gameSession.create({
           data: {
             gameId,
@@ -208,7 +198,6 @@ async function claimCard(req, res, next) {
             status: 'active',
           },
         });
-        console.log('[CARD CLAIM] New session created:', session.id);
       }
 
       // 7. Update the card to associate it with the player and session

@@ -72,13 +72,6 @@ function parseUserAgent(userAgent) {
     const deviceModel = result.device?.model || '';
     const deviceVendor = result.device?.vendor || '';
 
-    console.log('🔍 UA Parser Result:', {
-      os: result.os,
-      browser: result.browser,
-      device: result.device,
-      parsed: { platform, browser, deviceType, deviceModel, deviceVendor }
-    });
-
     return { 
       platform, 
       browser, 

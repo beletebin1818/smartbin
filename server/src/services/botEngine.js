@@ -68,7 +68,6 @@ async function _ensureBotBalance(botId, gameId) {
   if (shortfall > 0) {
     const topUp = Math.ceil(shortfall + game.cardPrice);
     await botService.creditBot(botId, topUp, `Auto top-up for game #${gameId} participation`);
-    console.log(`🤖 [BotEngine] Bot #${botId} topped up by ${topUp} ETB for game #${gameId}`);
   }
 }
 
@@ -110,17 +109,8 @@ async function _joinBotToGame(bot, gameId, io, options = {}) {
     });
 
     if (claimed.length === 0) {
-      console.log(
-        `🤖 [BotEngine] Bot #${bot.id} (${bot.firstName}) ` +
-        `claimed 0 cards in game #${gameId} (skipped=${skipped})`,
-      );
       return null;
     }
-
-    console.log(
-      `🤖 [BotEngine] Bot #${bot.id} (${bot.firstName}) joined game #${gameId} ` +
-      `and claimed ${claimed.length} card(s): [${claimed.map((c) => c.cardNumber).join(', ')}]`,
-    );
 
     // ── Emit bot:joined to the game room ─────────────────────────────────────
     io.to(`game_${gameId}`).emit('bot:joined', {
