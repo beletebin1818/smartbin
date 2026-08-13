@@ -378,7 +378,7 @@ export default function GamePage() {
   const [completedWinners, setCompletedWinners] = useState<GameWinner[]>([]);
   const [completedPrize, setCompletedPrize] = useState(0);
   const [completedDrawnNumbers, setCompletedDrawnNumbers] = useState<number[]>([]);
-  const [completedCountdown, setCompletedCountdown] = useState(3);
+  const [completedCountdown, setCompletedCountdown] = useState(5);
 
   const joinedRoom = useRef(false);
   const playerIdRef = useRef<number | null>(null);
@@ -544,7 +544,7 @@ export default function GamePage() {
       setCompletedPrize(p.prize ?? 0);
       setCompletedDrawnNumbers(p.drawnNumbers || []);
       setShowGameCompleted(true);
-      setCompletedCountdown(3);
+      setCompletedCountdown(5);
     };
     const onStatus = (p: GameStatusPayload) => {
       if (p.gameId !== gameId) return;
