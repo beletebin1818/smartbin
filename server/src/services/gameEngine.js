@@ -11,9 +11,8 @@ const winnerEngine = require('./winnerEngine');
 // In-memory registry to track active timers and draw loops for games
 const activeGames = new Map();
 
-function logPrizeTrace(source, gameId, oldPrize, newPrize, diff) {
-  // Debug prize trace disabled
-}
+function tracePrizeUpdate() {}
+function logPrizeTrace() {}
 
 // Definition of standard Bingo patterns using grid indices (0-24 in column-major B-I-N-G-O order)
 const WIN_PATTERNS = {
