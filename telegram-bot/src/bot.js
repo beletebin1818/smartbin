@@ -245,34 +245,44 @@ if (BOT_TOKEN && BOT_TOKEN !== 'placeholder_token') {
   bot.telegram.setMyCommands(botCommands)
     .then(() => console.log('✅ Telegram command menu registered.'))
     .catch((err) => {
-      console.error('❌ Failed to register Telegram command menu:');
-      console.error('   Error Type:', err.type || 'Unknown');
-      console.error('   Error Code:', err.code || 'Unknown');
-      console.error('   Error Message:', err.message);
-      
-      if (err.code === 'ETIMEDOUT' || err.code === 'ENOTFOUND') {
-        console.error('   ⚠️  NETWORK CONNECTION ISSUE DETECTED');
-        console.error('   Troubleshooting steps:');
-        console.error('   1. Check your internet connection');
-        console.error('   2. Verify Telegram API is accessible: https://api.telegram.org');
-        console.error('   3. Check if firewall is blocking outbound connections');
-        console.error('   4. Try using a VPN if Telegram is blocked in your region');
-        console.error('   5. Test with: curl https://api.telegram.org/bot' + BOT_TOKEN.substring(0, 10) + '.../getMe');
-      }
+      console.error('❌ Failed to register Telegram command menu:', err.message);
     });
 
-  // Use startPolling instead of launch to skip initial getMe check
-  bot.startPolling({
-    dropPendingUpdates: false,
-    allowedUpdates: undefined,
-  });
   console.log('🤖 Telegram Bot is running successfully...');
   console.log('📍 Bot Token:', BOT_TOKEN.substring(0, 10) + '...' + BOT_TOKEN.substring(BOT_TOKEN.length - 4));
   console.log('🔗 API Endpoint: https://api.telegram.org/bot' + BOT_TOKEN.substring(0, 10) + '...');
+
+  // ── Polling with 409 Conflict retry ──────────────────────────────────────
+  // Render rolling deploys start the new instance before killing the old one.
+  // Telegram only allows ONE polling connection — the 409 Conflict error means
+  // the old instance is still running. We wait and retry until it clears.
+  async function startPollingWithRetry() {
+    while (true) {
+      try {
+        await bot.startPolling({ dropPendingUpdates: false, allowedUpdates: undefined });
+        break; // Polling ended cleanly (e.g. SIGTERM) — exit loop
+      } catch (err) {
+        if (err.response && err.response.error_code === 409) {
+          console.warn('⚠️ 409 Conflict: another bot instance is still running. Retrying in 15s...');
+          await new Promise((resolve) => setTimeout(resolve, 15000));
+        } else {
+          console.error('❌ Polling error:', err.message);
+          throw err; // Re-throw non-409 errors so Render can restart
+        }
+      }
+    }
+  }
+
+  startPollingWithRetry().catch((err) => {
+    console.error('❌ Fatal polling error:', err.message);
+    process.exit(1);
+  });
+
 } else {
   console.log('🤖 Telegram Bot running in Dry Run mode (no real Telegram connection).');
   console.log('⚠️  BOT_TOKEN is not set in .env file');
 }
+
 
 // Enable graceful stop
 process.once('SIGINT', () => bot.stop('SIGINT'));
