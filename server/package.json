@@ -4,11 +4,13 @@
   "description": "Red Bingos Telegram Mini App — Backend API & Socket Server",
   "main": "src/index.js",
   "scripts": {
-    "start": "node src/index.js",
+    "start": "node scripts/migrate-and-seed.js && node src/index.js",
     "dev": "nodemon src/index.js",
     "seed": "node scripts/seed.js",
     "seed:payment": "node scripts/seedPaymentAccounts.js",
     "migrate": "npx prisma migrate dev",
+    "migrate:deploy": "npx prisma migrate deploy",
+    "migrate-and-seed": "node scripts/migrate-and-seed.js",
     "studio": "npx prisma studio",
     "generate": "npx prisma generate"
   },
