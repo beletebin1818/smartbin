@@ -20,8 +20,8 @@ function initTransporter() {
 
   const emailConfig = {
     host: process.env.EMAIL_HOST || 'smtp.gmail.com',
-    port: parseInt(process.env.EMAIL_PORT || '465'), // Changed to 465 for SSL
-    secure: process.env.EMAIL_SECURE !== 'false', // Default to true for SSL
+    port: parseInt(process.env.EMAIL_PORT || '587'),
+    secure: process.env.EMAIL_SECURE === 'true', // true = SSL (port 465), false = TLS (port 587)
     auth: {
       user: process.env.EMAIL_USER,
       pass: process.env.EMAIL_PASS,
