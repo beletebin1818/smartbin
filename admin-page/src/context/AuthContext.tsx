@@ -18,7 +18,7 @@ interface AuthContextValue {
   user: AuthUser | null;
   /** True while we're rehydrating from localStorage on first render */
   loading: boolean;
-  login: (user: AuthUser) => void;
+  login: (user: AuthUser, refreshToken?: string) => void;
   logout: () => void;
   /** Modern login with device security */
   loginWithDevice: (username: string, password: string) => Promise<{
