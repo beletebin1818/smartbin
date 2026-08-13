@@ -9,6 +9,8 @@ const nodemailer = require('nodemailer');
 // Create transporter using environment variables
 let transporter = null;
 
+const dns = require('dns');
+
 function initTransporter() {
   if (transporter) return transporter;
 
@@ -18,21 +20,28 @@ function initTransporter() {
     return null;
   }
 
+  // Port 465 (SSL) works better on Render than port 587 (TLS/STARTTLS).
+  // Render's infrastructure routes 587 to IPv6 which is unreachable on the free tier.
+  const port = parseInt(process.env.EMAIL_PORT || '465');
+  const secure = process.env.EMAIL_SECURE !== undefined
+    ? process.env.EMAIL_SECURE === 'true'
+    : port === 465; // auto: true for 465, false for 587
+
   const emailConfig = {
     host: process.env.EMAIL_HOST || 'smtp.gmail.com',
-    port: parseInt(process.env.EMAIL_PORT || '587'),
-    secure: process.env.EMAIL_SECURE === 'true', // true = SSL (port 465), false = TLS (port 587)
+    port,
+    secure,
     auth: {
       user: process.env.EMAIL_USER,
       pass: process.env.EMAIL_PASS,
     },
-    // Add connection timeout and retry options
     connectionTimeout: 15000,
     greetingTimeout: 10000,
     socketTimeout: 15000,
-    // Force IPv4 to avoid IPv6 connection issues
-    family: 4,
-    // Add additional options for better connectivity
+    // Force IPv4 DNS resolution so Render doesn't route through unreachable IPv6
+    dnsLookup: (hostname, options, callback) => {
+      dns.lookup(hostname, { ...options, family: 4 }, callback);
+    },
     tls: {
       rejectUnauthorized: false,
     },
@@ -52,7 +61,7 @@ function initTransporter() {
   transporter.verify((error, success) => {
     if (error) {
       console.error('❌ Email service configuration error:', error.message);
-      console.error('💡 Try using port 465 with EMAIL_SECURE=true for SSL, or check your firewall settings');
+      console.error('💡 Make sure EMAIL_PORT=465 and EMAIL_SECURE=true are set in Render environment variables');
     } else {
       console.log('✅ Email service is ready to send messages');
     }
@@ -60,6 +69,7 @@ function initTransporter() {
 
   return transporter;
 }
+
 
 /**
  * Send device approval email with OTP
