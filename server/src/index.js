@@ -12,7 +12,8 @@ require('dotenv').config();
 const { execSync } = require('child_process');
 try {
   console.log('🔄 Running Prisma migrations...');
-  execSync('npx prisma migrate deploy', { stdio: 'inherit', cwd: require('path').resolve(__dirname, '../../') });
+  // __dirname = server/src — go up ONE level to server/ where prisma/schema.prisma lives
+  execSync('npx prisma migrate deploy', { stdio: 'inherit', cwd: require('path').resolve(__dirname, '../') });
   console.log('✅ Prisma migrations complete.');
 } catch (err) {
   console.error('⚠️  Prisma migrate deploy failed:', err.message);
