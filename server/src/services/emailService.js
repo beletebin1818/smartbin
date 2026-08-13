@@ -20,6 +20,10 @@ function initTransporter() {
     return null;
   }
 
+  const ipv4DnsLookup = (hostname, options, callback) => {
+    dns.lookup(hostname, { ...options, family: 4 }, callback);
+  };
+
   const isGmail = process.env.EMAIL_SERVICE === 'gmail' || 
                   (!process.env.EMAIL_HOST && process.env.EMAIL_USER?.includes('@gmail.com')) ||
                   process.env.EMAIL_HOST === 'smtp.gmail.com';
@@ -31,6 +35,7 @@ function initTransporter() {
           user: process.env.EMAIL_USER,
           pass: process.env.EMAIL_PASS,
         },
+        dnsLookup: ipv4DnsLookup,
         connectionTimeout: 20000,
         greetingTimeout: 15000,
         socketTimeout: 20000,
@@ -43,6 +48,7 @@ function initTransporter() {
           user: process.env.EMAIL_USER,
           pass: process.env.EMAIL_PASS,
         },
+        dnsLookup: ipv4DnsLookup,
         connectionTimeout: 20000,
         greetingTimeout: 15000,
         socketTimeout: 20000,

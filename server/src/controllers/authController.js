@@ -428,15 +428,21 @@ async function refreshToken(req, res, next) {
  */
 async function me(req, res, next) {
   try {
+    const userId = parseInt(req.user?.userId || req.user?.id || req.user, 10);
+
+    if (isNaN(userId)) {
+      return res.status(400).json({ success: false, message: 'Invalid user ID in session' });
+    }
+
     let user;
     if (req.user.userType === 'agent') {
       user = await prisma.agent.findUnique({
-        where: { id: req.user.id },
+        where: { id: userId },
         select: { id: true, username: true, firstName: true, lastName: true, balance: true, status: true, role: true },
       });
     } else {
       user = await prisma.adminUser.findUnique({
-        where: { id: req.user.id },
+        where: { id: userId },
         select: { id: true, username: true, firstName: true, lastName: true, role: true, status: true },
       });
     }
