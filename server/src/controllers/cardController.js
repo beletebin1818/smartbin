@@ -108,8 +108,6 @@ async function claimCard(req, res, next) {
     // TODO: Verify playerId against the authenticated session instead of trusting the request body directly.
     const { playerId, stake } = req.body;
 
-    console.log('[CARD CLAIM] Request body:', { playerId, stake, gameId, cardNumber });
-
     if (!playerId) {
       return res.status(400).json({ success: false, message: 'playerId is required' });
     }
@@ -251,7 +249,6 @@ async function claimCard(req, res, next) {
         },
       });
 
-      console.log(`[PRIZE TRACE] ${new Date().toISOString()} | claimCard | Game #${gameId} | oldPrize=${game.prize} | newPrize=${updatedGame.prize} | increment=${cardPrice}`);
       return { card: updatedCard, session, player: updatedPlayer, game: updatedGame };
     }, { maxWait: 10000, timeout: 15000 });
 

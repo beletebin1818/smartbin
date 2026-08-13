@@ -303,7 +303,6 @@ async function assignRandomCards(botId, gameId, { port = parseInt(process.env.PO
     // Delay between card claims: fast in test mode, ~3-7 seconds otherwise
     if (i > 0) {
       const delay = fastClaim ? _randInt(50, 150) : _randInt(3000, 7000);
-      console.log(`🤖 [BotService] Bot #${botId} waiting ${delay}ms before claiming card #${cardNumber} (${i + 1}/${toClaimCount})`);
       await new Promise(resolve => setTimeout(resolve, delay));
     }
 
@@ -320,14 +319,11 @@ async function assignRandomCards(botId, gameId, { port = parseInt(process.env.PO
 
     if (res.statusCode === 200) {
       claimed.push({ cardNumber, ...res.body.data });
-      console.log(`🤖 [BotService] Bot #${botId} claimed card #${cardNumber} (${i + 1}/${toClaimCount})`);
     } else {
       // Card may have been claimed by another bot concurrently — not an error
       skipped++;
     }
   }
-
-  console.log(`🤖 [BotService] Bot #${botId} finished claiming: ${claimed.length} cards in ${toClaimCount} attempts`);
 
   return { claimed, skipped };
 }

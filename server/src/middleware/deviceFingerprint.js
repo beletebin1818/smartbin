@@ -97,7 +97,6 @@ function parseUserAgent(userAgent) {
  */
 function extractDeviceInfo(req) {
   const userAgent = req.headers['user-agent'] || '';
-  console.log('🔍 Raw User Agent:', userAgent);
   
   const parsedUA = parseUserAgent(userAgent);
   
@@ -109,15 +108,6 @@ function extractDeviceInfo(req) {
     deviceType: parsedUA.deviceType,
     ipAddress: getClientIP(req),
   };
-  
-  // Log for debugging
-  console.log('📱 Device Info Extracted:', {
-    platform: deviceInfo.platform,
-    browser: deviceInfo.browser,
-    deviceType: deviceInfo.deviceType,
-    ipAddress: deviceInfo.ipAddress,
-    userAgent: userAgent.substring(0, 100) + '...',
-  });
   
   return deviceInfo;
 }
