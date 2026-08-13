@@ -48,7 +48,7 @@ interface CompletedState {
 // ─── Constants ────────────────────────────────────────────────────────────────
 
 const LETTERS = ['B', 'I', 'N', 'G', 'O'] as const;
-const REDIRECT_SECONDS = 8;
+const REDIRECT_SECONDS = 3;
 
 const WIN_COLOR   = '#1E3A8A'; // deep navy — all winning cells
 const BLINK_COLOR = '#D97706'; // amber    — blink "off" state

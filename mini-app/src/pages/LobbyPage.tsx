@@ -347,9 +347,16 @@ export default function LobbyPage() {
   // -- Splash screen timer -------------------------------------------------
 
   useEffect(() => {
+    let delay = 300;
+    try {
+      if (fromCompleted.current || sessionStorage.getItem('fromCompleted') === '1') {
+        delay = 50;
+      }
+    } catch {}
+
     const timer = setTimeout(() => {
       setMinTimerDone(true);
-    }, 2700);
+    }, delay);
     return () => clearTimeout(timer);
   }, []);
 
