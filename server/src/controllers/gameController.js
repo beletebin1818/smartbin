@@ -390,7 +390,6 @@ async function getPublicGame(req, res, next) {
 
 async function getLobbyGame(req, res, next) {
   try {
-    console.log(' [gameController.getLobbyGame] Fetching lobby game...');
     // Get waiting game with sessions
     const waitingGame = await prisma.game.findFirst({
       where: { status: 'waiting' },
@@ -412,7 +411,6 @@ async function getLobbyGame(req, res, next) {
           },
         },
       },
-      orderBy: { createdAt: 'desc' },
     });
 
     // Get live game with sessions
@@ -438,22 +436,10 @@ async function getLobbyGame(req, res, next) {
       orderBy: { createdAt: 'desc' },
     });
 
-    console.log(' [gameController.getLobbyGame] Games found:', {
-      waitingGame: waitingGame?.id,
-      liveGame: liveGame?.id,
-    });
-
     const game = waitingGame ?? null;
     const liveGameForRedirect = liveGame ?? null;
 
-    console.log(' [gameController.getLobbyGame] Selected game:', {
-      id: game?.id,
-      status: game?.status,
-      reason: waitingGame ? 'waiting game for lobby' : 'no waiting game'
-    });
-
     if (!game && !liveGameForRedirect) {
-      console.log(' [gameController.getLobbyGame] No game found');
       return res.json({ success: true, data: null, game: null, liveGame: null });
     }
 
@@ -477,8 +463,6 @@ async function getLobbyGame(req, res, next) {
           },
         },
       });
-
-      console.log(' [gameController.getLobbyGame] Sessions count:', sessions.length);
 
       const realSessions = sessions.filter(s => {
         const player = s.player;
@@ -509,17 +493,7 @@ async function getLobbyGame(req, res, next) {
         realSessions.map(s => s.playerId || s.player?.id).filter(Boolean)
       ).size;
 
-      console.log(' [gameController.getLobbyGame] Stats calculated:', {
-        realPlayerCards,
-        botCards,
-        totalClaimedCards,
-        totalCardsInParens,
-        totalEnrollmentCards,
-        allPlayerCount,
-        realPlayerCount: uniqueRealPlayerCount,
-      });
-
-       calculatedStats = {
+      calculatedStats = {
          totalPlayers: uniqueRealPlayerCount,
          totalPlayersInParens: allPlayerCount,
          totalCards: realPlayerCards,
@@ -527,10 +501,9 @@ async function getLobbyGame(req, res, next) {
          realPlayerCount: uniqueRealPlayerCount,
          totalEnrollmentCards: totalEnrollmentCards,
          botCount: allPlayerCount - uniqueRealPlayerCount,
-       };
+      };
     }
 
-    console.log(' [gameController.getLobbyGame] Returning lobby data');
     return res.json({ 
       success: true, 
       data: game ? { ...game, calculatedStats } : null, 
@@ -538,7 +511,6 @@ async function getLobbyGame(req, res, next) {
       liveGame: liveGameForRedirect ? { ...liveGameForRedirect, calculatedStats } : null 
     });
   } catch (err) {
-    console.error(' [gameController.getLobbyGame] Error:', err);
     next(err);
   }
 }
