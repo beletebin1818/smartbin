@@ -253,7 +253,7 @@ async function claimCard(req, res, next) {
 
       console.log(`[PRIZE TRACE] ${new Date().toISOString()} | claimCard | Game #${gameId} | oldPrize=${game.prize} | newPrize=${updatedGame.prize} | increment=${cardPrice}`);
       return { card: updatedCard, session, player: updatedPlayer, game: updatedGame };
-    });
+    }, { maxWait: 10000, timeout: 15000 });
 
     // Broadcast card claimed to all players in the game room
     if (req.io) {
