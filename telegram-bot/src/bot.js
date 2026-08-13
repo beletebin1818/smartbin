@@ -278,4 +278,16 @@ if (BOT_TOKEN && BOT_TOKEN !== 'placeholder_token') {
 process.once('SIGINT', () => bot.stop('SIGINT'));
 process.once('SIGTERM', () => bot.stop('SIGTERM'));
 
+// ── Health check HTTP server ──────────────────────────────────────────────
+// Render requires a Web Service to bind to a port. The bot uses long polling
+// and doesn't need HTTP, but this tiny server satisfies Render's port scan.
+const http = require('http');
+const PORT = process.env.PORT || 3000;
+http.createServer((req, res) => {
+  res.writeHead(200, { 'Content-Type': 'text/plain' });
+  res.end('🤖 Telegram Bot is running.\n');
+}).listen(PORT, '0.0.0.0', () => {
+  console.log(`✅ Health server listening on port ${PORT}`);
+});
+
 module.exports = { bot };
