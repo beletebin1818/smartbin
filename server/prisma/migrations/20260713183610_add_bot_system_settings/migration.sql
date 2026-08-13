@@ -1,0 +1,20 @@
+-- AlterTable
+ALTER TABLE "Game" ADD COLUMN     "botMaxCards" INTEGER,
+ADD COLUMN     "botMinCards" INTEGER,
+ADD COLUMN     "botsEnabled" BOOLEAN,
+ADD COLUMN     "maxBotPlayers" INTEGER,
+ADD COLUMN     "minBotPlayers" INTEGER;
+
+-- AlterTable
+ALTER TABLE "GameSettings" ADD COLUMN     "botJoinDelayMax" INTEGER NOT NULL DEFAULT 5000,
+ADD COLUMN     "botJoinDelayMin" INTEGER NOT NULL DEFAULT 500,
+ADD COLUMN     "botMaxCards" INTEGER NOT NULL DEFAULT 3,
+ADD COLUMN     "botMinCards" INTEGER NOT NULL DEFAULT 1,
+ADD COLUMN     "botsEnabled" BOOLEAN NOT NULL DEFAULT false,
+ADD COLUMN     "maxBotPlayers" INTEGER NOT NULL DEFAULT 0,
+ADD COLUMN     "minBotPlayers" INTEGER NOT NULL DEFAULT 0,
+ADD COLUMN     "showBotLabels" BOOLEAN NOT NULL DEFAULT true;
+
+-- AlterTable
+ALTER TABLE "Player" ADD COLUMN     "botAvatar" TEXT,
+ADD COLUMN     "isBot" BOOLEAN NOT NULL DEFAULT false;
