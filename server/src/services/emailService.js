@@ -20,37 +20,42 @@ function initTransporter() {
     return null;
   }
 
-  // Port 465 (SSL) works better on Render than port 587 (TLS/STARTTLS).
-  // Render's infrastructure routes 587 to IPv6 which is unreachable on the free tier.
-  const port = parseInt(process.env.EMAIL_PORT || '465');
-  const secure = process.env.EMAIL_SECURE !== undefined
-    ? process.env.EMAIL_SECURE === 'true'
-    : port === 465; // auto: true for 465, false for 587
+  const isGmail = process.env.EMAIL_SERVICE === 'gmail' || 
+                  (!process.env.EMAIL_HOST && process.env.EMAIL_USER?.includes('@gmail.com')) ||
+                  process.env.EMAIL_HOST === 'smtp.gmail.com';
 
-  const emailConfig = {
-    host: process.env.EMAIL_HOST || 'smtp.gmail.com',
-    port,
-    secure,
-    auth: {
-      user: process.env.EMAIL_USER,
-      pass: process.env.EMAIL_PASS,
-    },
-    connectionTimeout: 15000,
-    greetingTimeout: 10000,
-    socketTimeout: 15000,
-    // Force IPv4 DNS resolution so Render doesn't route through unreachable IPv6
-    dnsLookup: (hostname, options, callback) => {
-      dns.lookup(hostname, { ...options, family: 4 }, callback);
-    },
-    tls: {
-      rejectUnauthorized: false,
-    },
-  };
+  const emailConfig = isGmail
+    ? {
+        service: 'gmail',
+        auth: {
+          user: process.env.EMAIL_USER,
+          pass: process.env.EMAIL_PASS,
+        },
+        connectionTimeout: 20000,
+        greetingTimeout: 15000,
+        socketTimeout: 20000,
+      }
+    : {
+        host: process.env.EMAIL_HOST || 'smtp.gmail.com',
+        port: parseInt(process.env.EMAIL_PORT || '465'),
+        secure: process.env.EMAIL_SECURE === 'true' || process.env.EMAIL_PORT === '465',
+        auth: {
+          user: process.env.EMAIL_USER,
+          pass: process.env.EMAIL_PASS,
+        },
+        connectionTimeout: 20000,
+        greetingTimeout: 15000,
+        socketTimeout: 20000,
+        tls: {
+          rejectUnauthorized: false,
+        },
+      };
 
   console.log('📧 Email configuration:', {
-    host: emailConfig.host,
-    port: emailConfig.port,
-    secure: emailConfig.secure,
+    service: isGmail ? 'gmail' : undefined,
+    host: emailConfig.host || 'smtp.gmail.com',
+    port: emailConfig.port || 465,
+    secure: emailConfig.secure ?? true,
     user: emailConfig.auth.user ? '***configured***' : 'missing',
     pass: emailConfig.auth.pass ? '***configured***' : 'missing',
   });
@@ -61,7 +66,6 @@ function initTransporter() {
   transporter.verify((error, success) => {
     if (error) {
       console.error('❌ Email service configuration error:', error.message);
-      console.error('💡 Make sure EMAIL_PORT=465 and EMAIL_SECURE=true are set in Render environment variables');
     } else {
       console.log('✅ Email service is ready to send messages');
     }
