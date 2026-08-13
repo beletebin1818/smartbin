@@ -11,6 +11,20 @@ const { execSync } = require('child_process');
 const _path = require('path');
 const _schemaPath = _path.resolve(__dirname, '../prisma/schema.prisma');
 console.log('🔄 Running Prisma migrations... schema:', _schemaPath);
+
+// If a migration is stuck as "failed" (P3009), mark it as rolled-back so
+// migrate deploy can retry it cleanly on this startup.
+const _failedMigration = '20260813_add_processed_by_agent_to_pending_request';
+try {
+  execSync(
+    `npx prisma migrate resolve --rolled-back "${_failedMigration}" --schema="${_schemaPath}"`,
+    { stdio: 'inherit' }
+  );
+  console.log(`✅ Resolved stuck migration: ${_failedMigration}`);
+} catch (_resolveErr) {
+  // Ignore — only fails if migration wasn't actually stuck, which is fine
+}
+
 try {
   execSync(`npx prisma migrate deploy --schema="${_schemaPath}"`, { stdio: 'inherit' });
   console.log('✅ Prisma migrations complete.');
