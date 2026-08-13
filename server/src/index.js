@@ -6,6 +6,20 @@
 
 require('dotenv').config();
 
+// ── Run Prisma migrations on every startup ───────────────
+// This ensures the DB schema is always up-to-date regardless
+// of which start command Render uses (npm start vs node src/index.js).
+const { execSync } = require('child_process');
+try {
+  console.log('🔄 Running Prisma migrations...');
+  execSync('npx prisma migrate deploy', { stdio: 'inherit', cwd: require('path').resolve(__dirname, '../../') });
+  console.log('✅ Prisma migrations complete.');
+} catch (err) {
+  console.error('⚠️  Prisma migrate deploy failed:', err.message);
+  // Don't exit — server can still start if migrations already applied
+}
+
+
 const express = require('express');
 const http = require('http');
 const cors = require('cors');
