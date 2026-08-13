@@ -254,6 +254,8 @@ async function scheduleBotJoins(gameId, io) {
         const staggerDelay = totalJoinWindowMs / candidates.length;
         const botJoinStartDelay = 200; // ms — allow first bot to join quickly
         delay = botJoinStartDelay + Math.floor(staggerDelay * index);
+      }
+
       setTimeout(async () => {
         // Enforce fastClaim: true so DB card claims complete very quickly
         await _joinBotToGame(bot, gameId, io, { fastClaim: true });
