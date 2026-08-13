@@ -789,6 +789,15 @@ export const api = {
     return response.data as {
       success: boolean;
       message?: string;
+      accessToken?: string;
+      refreshToken?: string;
+      user?: {
+        id: number;
+        username: string;
+        firstName: string;
+        lastName?: string;
+        role: string;
+      };
     };
   },
 

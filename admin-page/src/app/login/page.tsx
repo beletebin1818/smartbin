@@ -6,10 +6,12 @@ import { isAxiosError } from "axios";
 import { Eye, EyeOff, Loader2, Shield } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import { api } from "@/lib/api/client";
+import { roleToDisplay } from "@/lib/roles";
+import type { AuthUser } from "@/types";
 import DeviceApprovalWait from "@/components/auth/DeviceApprovalWait";
 
 export default function LoginPage() {
-  const { user, loading, loginWithDevice } = useAuth();
+  const { user, loading, login, loginWithDevice } = useAuth();
   const router = useRouter();
 
   const [username, setUsername] = useState("");
@@ -94,21 +96,33 @@ export default function LoginPage() {
     }
   }
 
-  async function handleOtpSubmit(e: React.FormEvent) {
-    e.preventDefault();
+  async function verifyOtp(code: string) {
     setError("");
-    
-    if (!otpCode.trim() || otpCode.length !== 6) {
+    if (!code.trim() || code.length !== 6) {
       setError("Please enter a valid 6-digit OTP code.");
       return;
     }
     
     setVerifyingOtp(true);
     try {
-      const data = await api.validateOtp(otpCode.trim(), deviceId!);
+      const data = await api.validateOtp(code.trim(), deviceId!);
       
       if (data.success) {
-        // OTP validated, now login again with credentials
+        if (data.accessToken && data.user) {
+          const authUser: AuthUser = {
+            id: String(data.user.id),
+            username: data.user.username,
+            name: `${data.user.firstName} ${data.user.lastName || ''}`.trim(),
+            role: roleToDisplay(data.user.role),
+            status: 'active',
+            token: data.accessToken,
+          };
+          login(authUser, data.refreshToken);
+          window.location.href = "/games";
+          return;
+        }
+
+        // Fallback: login again with credentials if tokens were not returned directly
         const result = await loginWithDevice(username.trim(), password);
         if (result.success) {
           window.location.href = "/games";
@@ -124,6 +138,11 @@ export default function LoginPage() {
     } finally {
       setVerifyingOtp(false);
     }
+  }
+
+  async function handleOtpSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    await verifyOtp(otpCode);
   }
 
   const handleRetryApproval = async () => {
@@ -236,7 +255,14 @@ export default function LoginPage() {
                   type="text"
                   maxLength={6}
                   value={otpCode}
-                  onChange={(e) => { setOtpCode(e.target.value.replace(/\D/g, '')); setError(""); }}
+                  onChange={(e) => {
+                    const val = e.target.value.replace(/\D/g, '');
+                    setOtpCode(val);
+                    setError("");
+                    if (val.length === 6 && !verifyingOtp) {
+                      verifyOtp(val);
+                    }
+                  }}
                   placeholder="000000"
                   className="w-full rounded-xl border border-[#29345E] bg-[#0B0F26] px-4 py-3 text-center text-2xl font-mono text-white placeholder-[#6C7285] outline-none transition focus:border-[#2F7EFF] focus:ring-2 focus:ring-[#2F7EFF]/20"
                   autoFocus

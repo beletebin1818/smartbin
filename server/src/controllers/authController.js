@@ -495,8 +495,42 @@ async function validateOtp(req, res, next) {
     }
     
     // Approve the device
-    await approveDevice(parseInt(deviceId));
+    const device = await approveDevice(parseInt(deviceId));
     
+    // Auto-login upon successful OTP validation
+    let user = null;
+    if (device.userType === 'admin') {
+      user = await prisma.adminUser.findUnique({ where: { id: device.userId } });
+    } else {
+      user = await prisma.agent.findUnique({ where: { id: device.userId } });
+    }
+
+    if (user && user.status) {
+      const payload = {
+        userId: user.id,
+        userType: device.userType,
+        username: user.username,
+        role: device.userType === 'admin' ? user.role : 'agent',
+      };
+
+      const accessToken = generateAccessToken(payload);
+      const refreshTokenData = await createRefreshToken(user.id, device.userType);
+
+      return res.json({
+        success: true,
+        message: 'Device approved successfully.',
+        accessToken,
+        refreshToken: refreshTokenData.token,
+        user: {
+          id: user.id,
+          username: user.username,
+          firstName: user.firstName,
+          lastName: user.lastName,
+          role: payload.role,
+        },
+      });
+    }
+
     return res.json({
       success: true,
       message: 'Device approved successfully. You can now login.',
