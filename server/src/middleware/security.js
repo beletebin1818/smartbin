@@ -115,11 +115,11 @@ const otpLimiter = rateLimit({
 
 /**
  * Rate Limiter for Authentication Routes
- * Device-based rate limiting (5 attempts per 3 hours per device)
+ * Device-based rate limiting (configurable via AUTH_RATE_LIMIT_MAX)
  */
 const authLimiter = rateLimit({
-  windowMs: 3 * 60 * 60 * 1000, // 3 hours
-  max: process.env.NODE_ENV === 'production' ? 5 : 1000, // 5 in prod, 1000 in dev
+  windowMs: parseInt(process.env.RATE_LIMIT_WINDOW_MS || 900000), // 15 min default
+  max: parseInt(process.env.AUTH_RATE_LIMIT_MAX || 5), // 5 attempts default
   keyGenerator: (req) => {
     const key = req.deviceFingerprint || req.ip || 'anonymous';
     console.log('🔒 Rate limiter key:', key);
