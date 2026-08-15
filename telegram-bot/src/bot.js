@@ -216,6 +216,13 @@ bot.on('text', async (ctx) => {
     return handleDepositSmsProof(ctx, userStates, state);
   }
 
+  // Guard: deposit is currently being processed (API call in flight).
+  // Telegram may retry the same update — silently ignore to prevent duplicate messages.
+  if (state.action === 'processing_deposit') {
+    return;
+  }
+
+
 // 3. Handling withdrawal amount input
   if (state.action === 'waiting_for_withdrawal_amount') {
     const amount = parseFloat(ctx.message.text);

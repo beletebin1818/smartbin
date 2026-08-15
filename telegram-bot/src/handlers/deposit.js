@@ -202,6 +202,13 @@ async function handleDepositSmsProof(ctx, userStates, state) {
     const normalizedReceiptMethod  = String(receipt?.receiptMethod || '').trim().toLowerCase();
     const receiptMethodMismatch    = receipt ? (normalizedSelectedMethod !== normalizedReceiptMethod) : false;
 
+    // ── Guard against Telegram retry duplicates ───────────────────────────
+    // The deposit API call can take up to 30s (Telebirr receipt fetch).
+    // Telegram re-delivers the same update if the bot doesn't respond fast
+    // enough, causing a second handler invocation. Marking the state as
+    // 'processing_deposit' before the API call blocks any such retry.
+    userStates.set(telegramId, { action: 'processing_deposit' });
+
     try {
       await apiClient.requestDeposit(telegramId, {
         amount: extractedAmount,
