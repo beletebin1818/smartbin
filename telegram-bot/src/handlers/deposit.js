@@ -217,9 +217,7 @@ async function handleDepositSmsProof(ctx, userStates, state) {
       const displayAmount = Number.isInteger(extractedAmount)
         ? extractedAmount
         : (extractedAmount % 1 === 0 ? Math.round(extractedAmount) : extractedAmount);
-      const successMsg = lang === 'am'
-        ? `✅ ተቀማጭ ጥያቄዎ ተልኳል!\n\n💰 መጠን: ${displayAmount} ETB\n\nሥራ አስኪያጁ ሲያፀድቀው ገንዘቡ በሂሳብዎ ላይ ገቢ ይደረጋል ::`
-        : `✅ Deposit request submitted!\n\n💰 Amount: *${extractedAmount} ETB*\n\nYour balance will update once the agent approves.`;
+      const successMsg = `✅ ተቀማጭ ጥያቄዎ ተልኳል!\n\n💰 መጠን: ${displayAmount} ETB\n\nሥራ አስኪያጁ ሲያፀድቀው ገንዘቡ በሂሳብዎ ላይ ገቢ ይደረጋል ::`;
 
       return ctx.reply(successMsg, { parse_mode: 'Markdown', ...getMenuKeyboard(lang) });
     } catch (apiErr) {
