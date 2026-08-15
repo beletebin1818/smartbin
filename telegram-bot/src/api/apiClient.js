@@ -53,7 +53,10 @@ async function requestDeposit(telegramId, { amount, method, smsProof, receiptUrl
     if (receiptMethod) payload.receiptMethod = receiptMethod;
     if (receiptMethodMismatch !== undefined) payload.receiptMethodMismatch = receiptMethodMismatch;
 
-    const res = await client.post(`/api/bot/${telegramId}/deposit`, payload);
+    // Use a 30s timeout for deposits: the verification service fetches an external
+    // receipt URL (up to 15s) before responding. The global 5s default is too short
+    // for Telebirr, causing the bot to show an error even when the deposit succeeds.
+    const res = await client.post(`/api/bot/${telegramId}/deposit`, payload, { timeout: 30000 });
     return res.data;
   } catch (err) {
     throw new Error(err.response?.data?.message || err.message);
