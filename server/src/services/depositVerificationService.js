@@ -170,7 +170,53 @@ function compareData(smsData, receiptData) {
 }
 
 /**
+ * Background task: fetch receipt data and update the verification record.
+ * Runs asynchronously AFTER the deposit request has already been confirmed to the user.
+ * This keeps the bot response fast — the external HTTP call never blocks the user.
+ */
+async function updateVerificationWithReceipt(depositVerificationId, receiptUrl, smsData, amount) {
+  try {
+    console.log(`[VERIFICATION] Background receipt fetch starting for verification ID: ${depositVerificationId}`);
+    const receiptData = await fetchReceiptData(receiptUrl);
+    const comparison = compareData(smsData, receiptData);
+    let verificationStatus = comparison.status;
+    const mismatchFields = [...comparison.mismatchFields];
+
+    // Cross-check amount if both are available
+    if (smsData.amount && receiptData && receiptData.amount && Math.abs(smsData.amount - amount) > 0.01) {
+      verificationStatus = 'MISMATCH';
+      mismatchFields.push(`User input amount (${amount}) differs from SMS amount (${smsData.amount})`);
+    }
+
+    const finalTransactionId = (receiptData && receiptData.transactionId) || smsData.transactionId || null;
+
+    await prisma.depositVerification.update({
+      where: { id: depositVerificationId },
+      data: {
+        receiptData: receiptData || {},
+        verificationStatus,
+        mismatchFields,
+        ...(finalTransactionId && { transactionId: finalTransactionId }),
+      },
+    });
+
+    console.log(`[VERIFICATION] Background receipt fetch completed — status: ${verificationStatus}`);
+  } catch (err) {
+    console.error(`[VERIFICATION] Background receipt fetch failed for ID ${depositVerificationId}:`, err.message);
+  }
+}
+
+/**
  * Main function to verify a deposit request.
+ *
+ * FAST PATH (blocks the response):
+ *   1. Parse SMS
+ *   2. Duplicate checks (DB only — fast)
+ *   3. Create DepositVerification record with status PENDING_RECEIPT
+ *   4. Return success immediately
+ *
+ * BACKGROUND (non-blocking):
+ *   5. Fetch external receipt URL and update the verification record
  */
 async function verifyDeposit(playerId, agentId, amount, method, smsProof, parsedReceiptUrl) {
   console.log(`[VERIFICATION] Starting verification for Player ID: ${playerId}, Method: ${method}`);
@@ -198,14 +244,13 @@ async function verifyDeposit(playerId, agentId, amount, method, smsProof, parsed
   const smsData = parseSMS(smsProof, method);
   const receiptUrl = parsedReceiptUrl || smsData.receiptUrl;
 
-
-  // 1. Duplicate Check: Ensure the receiptUrl or transactionId hasn't been used in an APPROVED or VERIFIED request
+  // 1. Duplicate Check: Ensure the receiptUrl or transactionId hasn't been used in an active request
   if (receiptUrl) {
     const existingVerifications = await prisma.depositVerification.findMany({
       where: { receiptUrl: receiptUrl }
     });
     
-    // Allow if previous was explicitly rejected, but reject if it was verified or pending
+    // Allow if previous was explicitly rejected, but block if verified or pending
     const hasActiveDuplicate = existingVerifications.some(v => v.status !== 'rejected');
     if (hasActiveDuplicate) {
       return { success: false, reason: 'DUPLICATE', message: 'This receipt has already been submitted.' };
@@ -221,45 +266,36 @@ async function verifyDeposit(playerId, agentId, amount, method, smsProof, parsed
     }
   }
 
-  // 2. Fetch and Parse Receipt
-  let receiptData = null;
-  let verificationStatus = 'FAILED';
-  let mismatchFields = ['No receipt URL provided or could not be matched.'];
+  // 2. Create Verification Record immediately — NO external HTTP call yet.
+  //    verificationStatus = 'PENDING_RECEIPT' → will be updated in background.
+  //    verificationStatus = 'FAILED'          → no receipt URL, admin reviews manually.
+  const initialStatus   = receiptUrl ? 'PENDING_RECEIPT' : 'FAILED';
+  const initialMismatch = receiptUrl ? [] : ['No receipt URL provided or could not be matched.'];
+  const knownTxId       = smsData.transactionId || null;
 
-  if (receiptUrl) {
-    receiptData = await fetchReceiptData(receiptUrl);
-    const comparison = compareData(smsData, receiptData);
-    verificationStatus = comparison.status;
-    mismatchFields = comparison.mismatchFields;
-    
-    // Also cross-check user provided amount vs SMS amount
-    if (smsData.amount && Math.abs(smsData.amount - amount) > 0.01) {
-      verificationStatus = 'MISMATCH';
-      mismatchFields.push(`User input amount (${amount}) differs from SMS amount (${smsData.amount})`);
-    }
-  }
-
-  // Extract a transaction ID for tracking
-  const finalTransactionId = (receiptData && receiptData.transactionId) || smsData.transactionId || null;
-
-  // 3. Create Verification Record
   const depositVerification = await prisma.depositVerification.create({
     data: {
       playerId,
       agentId,
       smsText: smsProof,
-      receiptUrl: receiptUrl,
+      receiptUrl: receiptUrl || null,
       smsData: smsData,
-      receiptData: receiptData || {},
-      verificationStatus: verificationStatus,
-      mismatchFields: mismatchFields,
-      transactionId: finalTransactionId,
+      receiptData: {},
+      verificationStatus: initialStatus,
+      mismatchFields: initialMismatch,
+      transactionId: knownTxId,
       amount: smsData.amount || amount,
       status: 'pending'
     }
   });
 
-  console.log(`[VERIFICATION] Completed with status: ${verificationStatus}`);
+  console.log(`[VERIFICATION] Record created (ID: ${depositVerification.id}) — receipt fetch will run in background.`);
+
+  // 3. Fire-and-forget: fetch receipt URL and update the record in the background.
+  //    This does NOT delay the bot response — the user sees the success message instantly.
+  if (receiptUrl) {
+    updateVerificationWithReceipt(depositVerification.id, receiptUrl, smsData, amount);
+  }
 
   return {
     success: true,

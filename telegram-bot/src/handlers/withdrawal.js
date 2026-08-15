@@ -194,7 +194,7 @@ async function handleWithdrawalAccountHolderInput(ctx, userStates, accountHolder
     });
 
     userStates.delete(telegramId);
-    return ctx.reply('የገንዘብ ማውጫ ጥያቄዎ ተቀብሏል። በቅርቡ በኤጀንታችን ይመረመራል።', getMenuKeyboard(lang));
+    return ctx.reply('የገንዘብ ማውጣት ጥያቄዎ ተቀብለናል። በቅርቡ በወኪላችን ታይቶ ምላሽ ይሰጠዋል።', getMenuKeyboard(lang));
   } catch (apiErr) {
     if (apiErr.status === 409 || (apiErr.data && apiErr.data.hasPendingWithdrawal)) {
       const errorMsg = apiErr.message || 'የታመነ የዕድል መወድድ ታሪክ አለ። እባክዎ የቆየውን ዓውሃድ ያስገድግደው ወይም አንድ ሰው ማንበኛዎች ያነጋግሩ።';
