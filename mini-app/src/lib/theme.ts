@@ -33,8 +33,8 @@ export const CARD_AVAILABLE_BG     = '#161C35'; // unclaimed — dark navy
 export const CARD_AVAILABLE_BORDER = '#3A4278'; // unclaimed border
 export const CARD_AVAILABLE_TEXT   = '#7880BE'; // unclaimed number
 
-export const CARD_MINE_BG          = '#7C6DFF'; // my card — electric indigo
-export const CARD_MINE_BORDER      = '#A090FF'; // my card border (brighter)
+export const CARD_MINE_BG          = '#C2410C'; // my card — orange (player's own)
+export const CARD_MINE_BORDER      = '#FB923C'; // my card border — bright orange
 export const CARD_MINE_TEXT        = '#FFFFFF'; // my card text
 
 export const CARD_OTHER_BG         = '#2563EB'; // claimed by other — blue

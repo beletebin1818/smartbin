@@ -1201,22 +1201,8 @@ export default function LobbyPage() {
               ተነሹ {minBet} | ትልቁ {maxBet}
             </p>
 
-            {/* Auto toggle + stake stepper */}
-            <div className="mt-2 flex items-center gap-2.5 px-2">
-              <button
-                type="button"
-                onClick={() => setAutoDaub((v) => !v)}
-                aria-label="Auto daub"
-                className="relative h-7 w-12 shrink-0 rounded-full transition-colors duration-200"
-                style={{ backgroundColor: autoDaub ? ACCENT_BLUE : BORDER_MEDIUM }}
-              >
-                <span
-                  className={`absolute top-1 h-5 w-5 rounded-full bg-white shadow transition-all duration-200 ${
-                    autoDaub ? 'left-6' : 'left-1'
-                  }`}
-                />
-              </button>
-
+            {/* Stake stepper */}
+            <div className="mt-2 flex items-center px-2">
               <div
                 className="flex flex-1 items-center rounded-xl overflow-hidden"
                 style={{ background: BG_SURFACE_2, border: `1px solid ${BORDER_LIGHT}` }}
@@ -1277,7 +1263,7 @@ export default function LobbyPage() {
              {/* Instruction text */}
              <div className="mt-3 px-3 text-center">
                <p className="text-[13px] font-semibold leading-tight" style={{ color: ACCENT_AMBER }}>
-                 ጨዋታው በሁለት ደቂቃ ነው
+                 ጨዋታው በሁለት ዝግ ነው!
                </p>
                <p className="text-[15px] font-bold mt-1" style={{ color: TEXT_PRIMARY }}>
                  የካርቴላ ቁጥር ይምረጡ
@@ -1462,22 +1448,30 @@ const CardBubble = memo(
           ${isTwinkling ? 'animate-twinkle ring-4 ring-amber-400 z-10' : ''}
         `}
         style={{
-          backgroundColor: isMine || isClaimedByOther
+          backgroundColor: isMine
+            ? CARD_MINE_BG
+            : isClaimedByOther
             ? CARD_OTHER_BG
             : isSelected
             ? CARD_SELECTED_BG
             : CARD_AVAILABLE_BG,
-          color: isMine || isClaimedByOther
+          color: isMine
+            ? CARD_MINE_TEXT
+            : isClaimedByOther
             ? CARD_OTHER_TEXT
             : isSelected
             ? CARD_SELECTED_TEXT
             : CARD_AVAILABLE_TEXT,
-          border: isMine || isClaimedByOther
+          border: isMine
+            ? `1px solid ${CARD_MINE_BORDER}`
+            : isClaimedByOther
             ? `1px solid ${CARD_OTHER_BORDER}`
             : isSelected
             ? `1px solid ${CARD_SELECTED_BORDER}`
             : `1px solid ${CARD_AVAILABLE_BORDER}`,
-          boxShadow: isMine || isClaimedByOther
+          boxShadow: isMine
+            ? '0 4px 12px rgba(194, 65, 12, 0.45)'
+            : isClaimedByOther
             ? '0 4px 12px rgba(37, 99, 235, 0.25)'
             : isSelected
             ? '0 4px 12px rgba(217, 119, 6, 0.25)'
